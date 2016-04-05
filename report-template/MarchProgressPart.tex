@@ -1,0 +1,62 @@
+% Created 2016-03-30 Wed 13:03
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\title{March Progress Update}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 24.5.1 (Org mode 8.2.10)}}
+\begin{document}
+\date{}
+\maketitle
+\section{Progress Since Last Report}
+\label{sec-1}
+Since my last report I changed my decision about web technology to an
+implementaion in Racket. The rationale for this decision is that
+Racket provides built-in capabilities for both website production and
+database interaction. This provides an ideal framework for a project
+like this. Using Racket, I have constructed a simple website that views all donors
+fetched from the database. I have laid down a database-website
+interaction framework that enables future developments. What I have
+not accomplished is populating randomized disease lists, tests done,
+addresses. Additionally, the website lacks user search and user match
+capability.
+
+I have elected to postpone the completion of data population for two reasons: 
+\begin{enumerate}
+\item This is a minimal set of data that could exist in a real
+situation; name, phone, bloodtype.
+\item Until I develop search capabilities, the data is unnecessary and
+thus does not detract from current development.
+\end{enumerate}
+\section{Problems I'm Having}
+\label{sec-2}
+I am having issues with developing an effective and aesthetically
+pleasing display for the donor list. A simple way to accomplish this
+is in Javascript, but Racket documentation about using Racket to
+produce Javascript is sparse. Until I get a grasp on the Javascript
+aspect I cannot make progress, so that is a very high-priority goal. I
+do not anticipate needing support from teaching faculty to accomplish this.
+\section{What I Plan To Do About It}
+\label{sec-3}
+I am considering a paradigm similar to those of other web stacks such
+as PHP/Javascript integration, or CGI approaches, which generate the
+output HTML according to a host language, but embed Javascript for
+advanced operations like jQuery.
+% Emacs 24.5.1 (Org mode 8.2.10)
+\end{document}

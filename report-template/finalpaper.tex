@@ -1,0 +1,311 @@
+\documentclass[runningheads,a4paper]{llncs}
+
+\usepackage[american]{babel}
+
+\usepackage{graphicx}
+
+%extended enumerate, such as \begin{compactenum}
+\usepackage{paralist}
+
+%put figures inside a text
+%\usepackage{picins}
+%use
+%\piccaptioninside
+%\piccaption{...}
+%\parpic[r]{\includegraphics ...}
+%Text...
+
+%Sorts the citations in the brackets
+%\usepackage{cite}
+
+%for easy quotations: \enquote{text}
+\usepackage{csquotes}
+
+\usepackage[T1]{fontenc}
+
+%enable margin kerning
+\usepackage{microtype}
+
+%better font, similar to the default springer font
+%cfr-lm is preferred over lmodern. Reasoning at http://tex.stackexchange.com/a/247543/9075
+\usepackage[%
+rm={oldstyle=false,proportional=true},%
+sf={oldstyle=false,proportional=true},%
+tt={oldstyle=false,proportional=true,variable=true},%
+qt=false%
+]{cfr-lm}
+%
+%if more space is needed, exchange cfr-lm by mathptmx
+%\usepackage{mathptmx}
+
+%for demonstration purposes only
+\usepackage[math]{blindtext}
+
+%enable hyperref without colors and without bookmarks
+\usepackage[
+%pdfauthor={},
+%pdfsubject={},
+%pdftitle={},
+%pdfkeywords={},
+bookmarks=false,
+breaklinks=true,
+colorlinks=true,
+linkcolor=black,
+citecolor=black,
+urlcolor=black,
+%pdfstartpage=19,
+pdfpagelayout=SinglePage
+]{hyperref}
+%enables correct jumping to figures when referencing
+\usepackage[all]{hypcap}
+
+%enable \cref{...} and \Cref{...} instead of \ref: Type of reference included in the link
+\usepackage[capitalise,nameinlink]{cleveref}
+%Nice formats for \cref
+\crefname{section}{Sect.}{Sect.}
+\Crefname{section}{Section}{Sections}
+\crefname{figure}{Fig.}{Fig.}
+\Crefname{figure}{Figure}{Figures}
+
+\usepackage{xspace}
+%\newcommand{\eg}{e.\,g.\xspace}
+%\newcommand{\ie}{i.\,e.\xspace}
+\newcommand{\eg}{e.\,g.,\ }
+\newcommand{\ie}{i.\,e.,\ }
+
+%introduce \powerset - hint by http://matheplanet.com/matheplanet/nuke/html/viewtopic.php?topic=136492&post_id=997377
+\DeclareFontFamily{U}{MnSymbolC}{}
+\DeclareSymbolFont{MnSyC}{U}{MnSymbolC}{m}{n}
+\DeclareFontShape{U}{MnSymbolC}{m}{n}{
+    <-6>  MnSymbolC5
+   <6-7>  MnSymbolC6
+   <7-8>  MnSymbolC7
+   <8-9>  MnSymbolC8
+   <9-10> MnSymbolC9
+  <10-12> MnSymbolC10
+  <12->   MnSymbolC12%
+}{}
+\DeclareMathSymbol{\powerset}{\mathord}{MnSyC}{180}
+
+%improve wrapping of URLs - hint by http://tex.stackexchange.com/a/10419/9075
+\makeatletter
+\g@addto@macro{\UrlBreaks}{\UrlOrds}
+\makeatother
+
+% correct bad hyphenation here
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\begin{document}
+
+%Works on MiKTeX only
+%hint by http://goemonx.blogspot.de/2012/01/pdflatex-ligaturen-und-copynpaste.html
+%also http://tex.stackexchange.com/questions/4397/make-ligatures-in-linux-libertine-copyable-and-searchable
+%This allows a copy'n'paste of the text from the paper
+\input glyphtounicode.tex
+\pdfgentounicode=1
+
+\title{Building a Bloodbank Database}
+%If Title is too long, use \titlerunning
+%\titlerunning{Short Title}
+
+%Single insitute
+\author{Nicholas Gordon}
+%If there are too many authors, use \authorrunning
+%\authorrunning{First Author et al.}
+\institute{University of Memphis}
+
+%Multiple insitutes
+%Currently disabled
+%
+\iffalse
+%Multiple institutes are typeset as follows:
+\author{Firstname Lastname\inst{1} \and Firstname Lastname\inst{2} }
+%If there are too many authors, use \authorrunning
+%\authorrunning{First Author et al.}
+
+\institute{
+Insitute 1\\
+\email{...}\and
+Insitute 2\\
+\email{...}
+}
+\fi
+			
+\maketitle
+
+\begin{abstract}
+  A report on the appropriateness, development, and construction of a
+  database suitable for use by a blood bank. Includes short
+  introduction to databases and competing vendors and web technologies
+  as well. Discussed are the design decisions made, including a
+  discussion of the schema used for the database, as well as the user
+  interface design. Finally, a discussion of the implementation itself
+  is given, including problems faced, analysis of the solution, and
+  future expansions of the solution.
+\end{abstract}
+
+%% \keywords{...}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}\label{sec:intro}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Databases are ubiquitous in computers. They are an extremely powerful
+tool for organizing data, which is an imperative in computer science;
+randomness is tantamount to uselessness. Once data is organized, it
+can be manipulated in powerful ways to derive meaning from data. One
+useful example of this is a blood bank. In a blood bank, the data are
+a pool of patients, each with varying blood types, blood-borne
+diseases, names, addresses, etc. Without organization, the best you
+could hope to do is keep track of everyone. With organization, you can
+generate lists of patients to contact for donation, who can donate to
+some arbitrary patient, or even location-based demographics on
+frequency of donation, disease distribution, etc.
+
+Now we come to the database itself. We could simply organize these
+lists by hand, periodically generating all of these metrics, but we
+can use computers to muscle this data into formats we perfer for
+us. This is the impetus for this project: generate a database that can
+be populated with data from a blood bank which will provide to the
+bank useful meaning from their data. The rest of this report will deal
+with some knowledge upon which this report is incumbent, such as
+differing database vendors and web technologies available for
+interfacing with these databases, the overall design of the database
+that has been produced, including the structure of the tables and the
+database itself, and a discussion of the problems faced, the solution
+presented, and its appropriateness to the problem at hand.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related Work}\label{sec:related}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In order to fully understand the decisions made during this project
+and the design of the database given, some background knowledge needs
+to be established. Given that a not-narrow audience is likely to be
+reading a paper such as this, this explanation is warranted. Databases
+often are just referred to as ``the database'' because of their
+ubiquity, but the truth of the matter is that there are a great many
+databases that any sysadmin must choose from, each having their own
+quirks, costs, and intended uses. According to db-engines.com, which
+uses a variety of metrics to determine database popularity, the five
+most popular databases in February 2016\cite{db-engine} are, in order:
+\begin{enumerate}
+\item Oracle
+\item MySQL
+\item Microsoft SQL Server
+\item MongoDB
+\item PostgreSQL
+\end{enumerate}
+This list is not linear, however. The top three entries have
+reasonably close numbers in terms of popularity, but MongoDB and
+PostgreSQL have only about 30\% each of the share of Microsoft SQL
+Server. Most databases are relational, which means their records are
+stored in tables or similar, and relate multiple fields together in
+items called records. These databases are the dominant paradigm, and
+only MongoDB on this list is not a relational database. MongoDB fits
+into another paradigm known as document-store database, which
+effectively are a dictionary that stores complex objects in a
+key-value system. The differences between these databases largely come
+down to individual feature support, cost of use, and
+enterprise-support. Of note is that MySQL, MongoDB, and PostgreSQL are
+all open-source software and as such are free to use or have a free
+version available.
+
+Racket is a Scheme derivative, which emphasizes being a platform for
+extending the language and being a full-spectrum programming language
+suitable for a broad variety of uses.\cite{racket-org} It includes as
+built-in packages tools to develop a dynamically-generated website, as
+well as for interfacing with a large variety of databases from
+different vendors. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Design}\label{sec:design}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The database itself is described by a schema, which is essentially
+some logical design of the database stipulating things such as how the
+tables are interrelated, what tables have which attributes, and how
+those attributes are constrained. The schema for the table in this
+database is as follows:
+\newline
+\textbf{Donor}
+\newline
+\begin{tabular}{| l | r |}
+  \hline
+  Attribute & Constraints \\
+  \hline
+  id & serial primary key \\
+  lastname & varchar(255) not null \\
+  firstname & varchar(255) not null \\
+  bloodtype & varchar(3) not null \\
+  address & varchar(255) \\
+  testsdone & text[][] \\
+  knowndiseases & text[][] \\
+  lastdonationdate & date \\
+  phone & char(14) \\
+  \hline
+\end{tabular}
+
+As a demonstration of the database's capability and real-world
+usefulness, I have elected to build a webpage. This webpage permits a
+user, here speculated to be bloodbank nurses or doctors, to view
+donors, and to manipulate this data accordingly. They would be able to
+view details about a patient they select from a brief view, and then
+be able to find a list of patients who could donate blood to this
+user.
+I've chosen Racket because of the aforementioned tight integration of
+website devlopment capability and database interaction. These
+qualities make Racket an ideal platform for implementing this design.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Analysis}\label{sec:analysis}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+<UNFINISHED>
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}\label{sec:conc}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+<UNFINISHED>
+%% Winery~\cite{Winery} is graphical modeling tool.
+
+%% \begin{figure}
+%% Simple Figure
+%% \caption{Simple Figure}
+%% \label{fig:simple}
+%% \end{figure}
+
+%% \begin{table}
+%% \caption{Simple Table}
+
+%% \label{tab:simple}
+%% Simple Table
+%% \end{table}
+
+%% cref Demonstration: Cref at beginning of sentence, cref in all other cases.
+
+%% \Cref{fig:simple} shows a simple fact, although \cref{fig:simple} could also show something else.
+
+%% \Cref{tab:simple} shows a simple fact, although \cref{tab:simple} could also show something else.
+
+%% \Cref{sec:intro} shows a simple fact, although \cref{sec:intro} could also show something else.
+
+%% Brackets work as designed:
+%% <test>
+
+%% The symbol for powerset is now correct: $\powerset$ and not a Weierstrass p ($\wp$).
+
+%% \begin{inparaenum}
+%% \item All these items...
+%% \item ...appear in one line
+%% \item This is enabled by the paralist package.
+%% \end{inparaenum}
+
+%% ``something in quotes'' using plain tex or use \enquote{the enquote command}.
+
+%In the bibliography, use \texttt{\textbackslash textsuperscript} for ``st'', ``nd'', ...:
+%E.g., \enquote{The 2\textsuperscript{nd} conference on examples}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bibliographystyle{splncs03}
+\bibliography{finalpaper}
+
+%All links were last followed on October 5, 2014.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

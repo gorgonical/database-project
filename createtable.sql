@@ -1,0 +1,1 @@
+create table donor(id serial primary key, lastname varchar(255) not null, firstname varchar(255) not null, bloodtype varchar(3) not null, address varchar(255), testsdone text[][], knowndiseases text[][], lastdonationdate date, phone char(14));
