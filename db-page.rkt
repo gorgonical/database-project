@@ -19,10 +19,9 @@
 (define search-patient-formlet (formlet
                                 (div "First Name:" ,{(to-string (default (string->bytes/utf-8 "") (text-input))) . => . fname}(br)
                                      "Last Name:" ,{(to-string (default (string->bytes/utf-8 "") (text-input))) . => . lname}(br)
-                                     "Phone:  \"(XXX) XXX-XXXX\"" ,{(to-string (default (string->bytes/utf-8 "")(text-input))) . => . phone}(br)
                                      "Bloodtype: " ,{(select-input '("" "O+" "O-" "A+" "A-" "B+" "B-" "AB+" "AB-")) . => . bloodtype }
                                      )
-                                (list fname lname phone bloodtype)))
+                                (list fname lname bloodtype)))
 
 (define (display-patients arg-db arg-patients)
   (define (response-generator embed/url)
@@ -43,8 +42,8 @@
                  (table ((style "overflow:scroll;"))
                         (input ((type "submit") (value "View more details")))
                         (tr (th "Select")
-                            (th "First Name")
-                            (th "Last Name"))
+                            (th "Last Name")
+                            (th "First Name"))
                         ,@(map render-patient arg-patients))
                  ))
      )
@@ -80,8 +79,9 @@
                 (th "Address")            
                 (th "Known Diseases")
                 (th "Tests Performed")
+                (th "Date of Last Donation")
                 (th "Phone Number"))
-             (tr ,@(for/list ([i (in-range 1 8)])
+             (tr ,@(for/list ([i (in-range 1 9)])
                      `(td ,(if (sql-null? (vector-ref arg-patient i))
                                "null"
                                (vector-ref arg-patient i))

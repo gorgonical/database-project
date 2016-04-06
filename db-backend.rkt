@@ -1,6 +1,8 @@
 #lang racket/base
 (require racket/list
-         db)
+         db
+         racket/trace)
+
 
 (define (initialize-patientlist! dbname user)
   (define db (postgresql-connect #:user user
@@ -10,7 +12,7 @@
 (define (get-patients arg-db)
   (query-rows
    arg-db
-   "SELECT id, firstname, lastname FROM donor;"))
+   "SELECT id, lastname, firstname FROM donor;"))
 
 (define (get-extended-patient arg-db arg-patient-id)
   (query-row
@@ -21,16 +23,48 @@
   )
 
 (define (search-patient arg-db arg-patient-attribute-list)
-  ;(define wildcardattrs (map (lambda (item) (string-append "%" item "%")) arg-patient-attribute-list))
-  ;(set! wildcardattrs (list (car wildcardattrs)))
+  (define nullattrs (map (lambda (item) (if (string=? "" item) sql-null item)) arg-patient-attribute-list))
+  (define nonnullcount (- (length nullattrs) (count sql-null? nullattrs)))
+  (display nullattrs)
+  (define querystring "SELECT * FROM donor")
+  (define querylist (list " firstname like ($~a::varchar)" " lastname like ($~a::varchar)" " bloodtype~~~~($~a::varchar)"))
+  (define argcount 1)
+  (cond
+    [(= 0 nonnullcount) (set! querystring (string-append querystring ";"))]
+    [else
+     (begin
+       (set! querystring (string-append querystring " WHERE"))
+       (for ([item (in-list nullattrs)]
+           [j (in-range 0 4)])
+       (if (sql-null? item)
+           null
+           (if (not (= 0 nonnullcount))
+               (begin
+                 (set! querystring (string-append querystring
+                                                  (format (list-ref querylist j) argcount)))
+                 
+                 (if (= 1 nonnullcount)
+                     null
+                     (set! querystring (string-append querystring " and")))
+                 (set! nonnullcount (- nonnullcount 1))
+                 (set! argcount (+ argcount 1))
+                 )
+               (set! querystring (string-append querystring ";")))))
+       )
+     ])
+               
+  (display querystring)
+  (print (remove* (list sql-null) nullattrs))
+  (print (bind-prepared-statement (prepare arg-db
+                                     querystring)
+                            (remove* (list sql-null) nullattrs)))
   (query-rows
    arg-db
    (bind-prepared-statement (prepare arg-db
-                                     "SELECT * FROM donor WHERE firstname like ($1::varchar) or lastname like ($2::varchar) or bloodtype like ($3::varchar) or phone like ($4::char);")
-                                     ;"SELECT * FROM donor WHERE firstname like ($1::varchar);")
-                            ;wildcardattrs)))
-                            arg-patient-attribute-list)))
-
+                                     querystring)
+                            (remove* (list sql-null) nullattrs))))
+ 
+(trace search-patient)
 (provide get-patients
          get-extended-patient
          search-patient

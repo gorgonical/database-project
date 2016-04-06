@@ -1,8 +1,8 @@
-a+
-a-
-ab+
-ab-
-b+
-b-
-o+
-o-
+A+
+A-
+AB+
+AB-
+B+
+B-
+O+
+O-
