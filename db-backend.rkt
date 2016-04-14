@@ -1,4 +1,4 @@
-#lang racket/base
+                      #lang racket/base
 (require racket/list
          db
          racket/trace)
@@ -63,11 +63,37 @@
    (bind-prepared-statement (prepare arg-db
                                      querystring)
                             (remove* (list sql-null) nullattrs))))
- 
+
+(define (donor-search arg-db bloodtype)
+  (define querystring "SELECT * FROM donor")
+  (cond
+    [(string=? "O-" bloodtype) (set! querystring (string-append querystring " WHERE bloodtype ~~ 'O-';"))]
+    [(string=? "O+" bloodtype) (set! querystring (string-append querystring " WHERE bloodtype ~~ 'O+' or bloodtype ~~ 'O-';"))]
+    [(string=? "A-" bloodtype) (set! querystring (string-append querystring " WHERE bloodtype ~~ 'O-' or bloodtype ~~ 'A-';"))]
+    [(string=? "A+" bloodtype) (set! querystring (string-append querystring " WHERE bloodtype ~~ 'O+' or bloodtype ~~ 'A+' or bloodtype ~~ 'O-' or bloodtype ~~ 'A-';"))]
+    [(string=? "B-" bloodtype) (set! querystring (string-append querystring " WHERE bloodtype ~~ 'B-' or bloodtype ~~ 'O-';"))]
+    [(string=? "B+" bloodtype) (set! querystring (string-append querystring " WHERE bloodtype ~~ 'O+' or bloodtype ~~ 'B+' or bloodtype ~~ 'O-' or bloodtype ~~ 'B-';"))]
+    [(string=? "AB-" bloodtype) (set! querystring (string-append querystring " WHERE bloodtype ~~ 'O-' or bloodtype ~~ 'A-' or bloodtype ~~ 'B-' or bloodtype ~~ 'AB-';"))]
+    [(string=? "AB+" bloodtype) (set! querystring (string-append querystring ";"))])
+  (query-rows
+   arg-db
+   querystring)
+  )
+
+(define (get-patient-bloodtype arg-db patient-id)
+  (query-value
+   arg-db
+   (bind-prepared-statement (prepare arg-db
+                                     "SELECT bloodtype FROM donor WHERE id=($1);")
+                            (list (string->number patient-id)))))
+
 (trace search-patient)
+(trace donor-search)
 (provide get-patients
          get-extended-patient
+         get-patient-bloodtype
          search-patient
+         donor-search
          initialize-patientlist!
          sql-null?)
 

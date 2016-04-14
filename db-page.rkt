@@ -27,10 +27,6 @@
   (define (response-generator embed/url)
     (response/xexpr
      `(div ((class "patientlist"))
-           ;; (form ([action
-           ;;         ,(embed/url show-user-details-handler)])
-           ;;       ,@(formlet-display select-patient-formlet)
-           ;;       (input ([type "submit"])))
            (form ([action
                    ,(embed/url user-search-handler)])
                  ,@(formlet-display search-patient-formlet)
@@ -38,9 +34,10 @@
                          [value "Search for patient"])))
            
            (form ((action
-                   ,(embed/url show-user-details-handler)))
+                   ,(embed/url patient-list-handler)))
                  (table ((style "overflow:scroll;"))
-                        (input ((type "submit") (value "View more details")))
+                        (input ((type "submit") (value "View more details") (name "details")))
+                        (input ((type "submit") (value "Find compatible donors") (name "donors")))
                         (tr (th "Select")
                             (th "Last Name")
                             (th "First Name"))
@@ -48,16 +45,25 @@
                  ))
      )
     )
+  (define (patient-list-handler request)
+    (cond
+      [(exists-binding? 'details (request-bindings request)) (show-user-details-handler request)]
+      [(exists-binding? 'donors (request-bindings request)) (donor-search-handler request)]))  
   (define (user-search-handler request)
     (define patientattrs
       (formlet-process search-patient-formlet request))
     (display-patients arg-db (user-search arg-db patientattrs)))
+  (define (donor-search-handler request)
+    (show-user-details arg-db
+                       (donor-search arg-db (get-patient-bloodtype arg-db (get-patient-id (request-bindings request))))
+                       request)
+    )
   (define (get-patient-id bindings)
     (extract-binding/single 'patientbutton bindings))
   (define (show-user-details-handler request)
     (show-user-details arg-db
-                       (get-extended-patient arg-db
-                                                    (string->number (get-patient-id (request-bindings request))))
+                       (list (get-extended-patient arg-db
+                                                   (string->number (get-patient-id (request-bindings request)))))
                        request))
   (define (render-patient patient)
     `(tr (td (input ((type "radio") (name "patientbutton") (value ,(number->string (vector-ref patient 0))))))             
@@ -69,9 +75,9 @@
   (search-patient arg-db arg-patient-attributes)
   )
 
-(define (show-user-details arg-db arg-patient request)
-  (define (render-extended-patient arg-patient)
-    ;; (define patientinfo (get-extended-patient arg-db arg-patient))
+(define (show-user-details arg-db arg-patients request)
+  (define (render-extended-patient arg-patients)
+    ;; (define patientinfo (get-extended-patient arg-db arg-patients))
     `(table ((style "width:75%"))
             (tr (th "Last Name")
                 (th "First Name")
@@ -81,18 +87,19 @@
                 (th "Tests Performed")
                 (th "Date of Last Donation")
                 (th "Phone Number"))
-             (tr ,@(for/list ([i (in-range 1 9)])
-                     `(td ,(if (sql-null? (vector-ref arg-patient i))
-                               "null"
-                               (vector-ref arg-patient i))
-                             )))
+            ,@(map (lambda (patient)
+                     `(tr ,@(for/list ([i (in-range 1 9)])
+                             `(td ,(if (sql-null? (vector-ref patient i))
+                                       "null"
+                                       (vector-ref patient i))))))
+                   arg-patients)
             )
     )
   (define (response-generator embed/url)
     (response/xexpr
      `(html (head (title "Patient Details"))
             (body
-             ,(render-extended-patient arg-patient)
+              ,(render-extended-patient arg-patients)
              (a ((href ,(embed/url back-handler))) "Back to all patients")))))
   (define (back-handler request)
     (render-patients-page arg-db request))
