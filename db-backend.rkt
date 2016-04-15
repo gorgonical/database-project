@@ -87,11 +87,38 @@
                                      "SELECT bloodtype FROM donor WHERE id=($1);")
                             (list (string->number patient-id)))))
 
+(define (get-patient-fullname arg-db patient-id)
+  (query-row
+   arg-db
+   (bind-prepared-statement (prepare arg-db
+                                     "SELECT firstname, lastname FROM donor WHERE id=($1);")
+                            (list (string->number patient-id)))))
+
+;; Expected order of update-values: fname, lname, bloodtype, address
+(define (update-donor-backend arg-db arg-patient-id update-values)
+  ;; convert "null" to <sql-null>
+  (define nullvals (map (lambda (value) (if (string=? "null" value) sql-null value)) update-values))
+  (query-exec
+   arg-db
+   (bind-prepared-statement (prepare arg-db
+                                     "UPDATE donor SET firstname = $1, lastname = $2, bloodtype = $3, address = $4 where id=$5;")
+                            (flatten (list nullvals arg-patient-id)))))
+
+(define (delete-donor-backend arg-db arg-patient-id)
+  (query-exec
+   arg-db
+   (bind-prepared-statement (prepare arg-db
+                                     "DELETE FROM donor WHERE id=$1;")
+                            (list (string->number arg-patient-id)))))
+
 (trace search-patient)
 (trace donor-search)
 (provide get-patients
          get-extended-patient
          get-patient-bloodtype
+         get-patient-fullname
+         update-donor-backend
+         delete-donor-backend
          search-patient
          donor-search
          initialize-patientlist!

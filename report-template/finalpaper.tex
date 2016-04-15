@@ -214,7 +214,10 @@ extending the language and being a full-spectrum programming language
 suitable for a broad variety of uses.\cite{racket-org} It includes as
 built-in packages tools to develop a dynamically-generated website, as
 well as for interfacing with a large variety of databases from
-different vendors. 
+different vendors.
+
+With regards to the bloodbank itself, when determining something as straightforwarded as who can donate blood to who, we have an important classifier to understand: the ABO blood group system and Rh factor. These two qualifiers decide what kind of blood any given person can receive.\cite{redcross-types} This is critically important to the process; if you give a patient blood they cannot receive, their body could incorrectly identify the transfused blood cells as foreign invaders, and as a result their immune system could have a major reaction, causing severe bodily danger, such as shock or kidney failure.\cite{nih-blood}. As a result, the motivation to get the relevant information correct is powerful.
+<
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Design}\label{sec:design}
@@ -236,8 +239,8 @@ database is as follows:
   firstname & varchar(255) not null \\
   bloodtype & varchar(3) not null \\
   address & varchar(255) \\
-  testsdone & text[][] \\
-  knowndiseases & text[][] \\
+  testsdone & text[] \\
+  knowndiseases & text[] \\
   lastdonationdate & date \\
   phone & char(14) \\
   \hline
@@ -257,11 +260,35 @@ qualities make Racket an ideal platform for implementing this design.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Analysis}\label{sec:analysis}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-<UNFINISHED>
+My experiences and encounters with this project have been varied and
+interesting. Interestingly, the biggest stumbling block has by far
+been the integration of the database with the developed frontend
+website. A wide variety of issues will be discussed, such as the
+converting of variable types, data validation, and additionally quirks
+associated with my particular choice of web development platform.
+
+First, a decision had to be made about how to store the list of tests
+that have been done on the donor's blood, and what diseases a given
+donor is known to have. Due to the nature of arrays, the traditional
+SQL approach to arrays is to instead use additional tables and join
+those tables as a foreign key. The motivations for eschewing this and
+using Postgres's built-in, declarative-like array structures are
+twofold: it allows for more intuitive abstraction about the data, and
+it simplifies the work needed to convert the data gathered in the
+frontend to the backend database. Additionally, because the number of
+entries in these arrays will likely be small (<10), any performance
+advantage that would be gained from the traditional approach is
+negligibly small.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Future Works}\label{sec:fworks}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}\label{sec:conc}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 <UNFINISHED>
+
+
 %% Winery~\cite{Winery} is graphical modeling tool.
 
 %% \begin{figure}
