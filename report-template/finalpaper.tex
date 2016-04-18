@@ -216,8 +216,27 @@ built-in packages tools to develop a dynamically-generated website, as
 well as for interfacing with a large variety of databases from
 different vendors.
 
-With regards to the bloodbank itself, when determining something as straightforwarded as who can donate blood to who, we have an important classifier to understand: the ABO blood group system and Rh factor. These two qualifiers decide what kind of blood any given person can receive.\cite{redcross-types} This is critically important to the process; if you give a patient blood they cannot receive, their body could incorrectly identify the transfused blood cells as foreign invaders, and as a result their immune system could have a major reaction, causing severe bodily danger, such as shock or kidney failure.\cite{nih-blood}. As a result, the motivation to get the relevant information correct is powerful.
-<
+With regards to the bloodbank itself, when determining something as
+straightforwarded as who can donate blood to who, we have an important
+classifier to understand: the ABO blood group system and Rh
+factor. These two qualifiers decide what kind of blood any given
+person can receive.\cite{redcross-types} This is critically important
+to the process; if you give a patient blood they cannot receive, their
+body could incorrectly identify the transfused blood cells as foreign
+invaders, and as a result their immune system could have a major
+reaction, causing severe bodily danger, such as shock or kidney
+failure.\cite{nih-blood}. As a result, there is a strong motivation to
+get the relevant information correct.
+
+Additionally, there exist infections that reside in the blood of the
+infected. Many of these infections can be transmitted through the
+blood, including dengue fever, the hepatitus viruses, HIV, and malaria
+among others.\cite{cdc-diseases} As such, donations must be screened
+before they can be given to a needful recipient to avoid causing
+transmission of these infections. Further, a record of which donors
+are known to have certain diseases can help a bloodbank prioritize
+which people they contact to request donations, or provide useful
+information to viral epidemiology studies.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Design}\label{sec:design}
@@ -247,27 +266,76 @@ database is as follows:
 \end{tabular}
 
 As a demonstration of the database's capability and real-world
-usefulness, I have elected to build a webpage. This webpage permits a
-user, here speculated to be bloodbank nurses or doctors, to view
-donors, and to manipulate this data accordingly. They would be able to
-view details about a patient they select from a brief view, and then
-be able to find a list of patients who could donate blood to this
-user.
-I've chosen Racket because of the aforementioned tight integration of
-website devlopment capability and database interaction. These
-qualities make Racket an ideal platform for implementing this design.
+usefulness, a webpage was built. This webpage permits a user, here
+speculated to be bloodbank nurses or doctors, to view donors, and to
+manipulate this data accordingly. They are be able to view details
+about a patient they select from a brief view, and then find a list of
+patients who could donate blood to this user. Naturally, such a
+webpage should also enable the user to add, remove, and modify the
+patients in the database. PostgreSQL was chosen as the backend
+database system to implement the solution on.
+
+The web-based application design that was chosen is structured as
+follows: the builk of the application is hosted on the initial site: a
+search form to narrow results down, and the related list of donors
+beneath that. For editing donors, viewing more donor details, and
+finding a list of compatible donors, you are taken to new pages for
+each of these things. Hosted on these pages are the relevant forms
+listed in HTML tables, and the content-modifying actions (edit,
+delete, add) all have additional confirmation pages before any true
+action is committed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Analysis}\label{sec:analysis}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 My experiences and encounters with this project have been varied and
-interesting. Interestingly, the biggest stumbling block has by far
-been the integration of the database with the developed frontend
-website. A wide variety of issues will be discussed, such as the
-converting of variable types, data validation, and additionally quirks
-associated with my particular choice of web development platform.
+interesting. The biggest stumbling block has by far been the
+integration of the database with the developed frontend website. Both
+design choices and implementation issues will be discussed, including
+schema design, variable typing, data validation, and the peculiarities
+of Racket in general.
 
-First, a decision had to be made about how to store the list of tests
+Racket was chosen due to the language having built-in packages for
+both web-page generation and serving and database interaction. As a
+result, there was no required code to transform the data between
+systems or to act as 'duct tape'. This makes the system simpler to
+maintain, and means that the required skill level to maintain the code
+is lower than it would otherwise be, using say using some typical
+combination as LAMP, which requires four separate skill-sets. The
+Racket/PostgreSQL stac used here requires only two. Additionally,
+Racket was a good choice because of my prior familiarity with it,
+avoiding the need to inves time in learning a new language.
+
+I correctly expected addition and updating to be more challenging than
+the other features, owing to considerations like data validation and
+integrity requirements. Because of the breadth of information
+regarding a blood bank, this was left mostly-undeveloped; a future
+iteration of this could include this.
+
+I expected addition and updating to be more
+challenging, owing to data validation requirements.
+
+  I've chosen
+Racket because of the aforementioned tight integration of website
+devlopment capability and database interaction. These qualities make
+Racket an ideal platform for implementing this design. 
+
+First, decisions about what fields to include in the 'donor/patient'
+model had to be made. Ultimately, the choice was to make the model as
+broad as possible, hoping to cover as many use-cases as possible; this
+is the justification for making only first name, last name and
+bloodtype requirements. This selection of constraints covers the
+greatest cross-section of possible donors. Further, the decision to
+limit retained attributes to simple demographics and medical
+information is practical. A division of information exists between
+clerical information, such as billing, weight requirements, blood
+quality, reimbursement, etc., and less ephemeral, qualitative data
+like name, blood type, address. While a database could be used
+similarly to retain and manage the clerical information, the solution
+presented here was intended to be a broadly-applicable one, and so an
+omission of complexity was valid.
+
+Second, a decision had to be made about how to store the list of tests
 that have been done on the donor's blood, and what diseases a given
 donor is known to have. Due to the nature of arrays, the traditional
 SQL approach to arrays is to instead use additional tables and join
@@ -279,60 +347,34 @@ frontend to the backend database. Additionally, because the number of
 entries in these arrays will likely be small (<10), any performance
 advantage that would be gained from the traditional approach is
 negligibly small.
+
+After the implementation of this system, it has become clear that none
+of the features showcased are vendor-dependent; the database backend
+for this is quite flexible, pending only some code tweaks to the
+database interfacing code. This is not a huge revelation considering
+the scope and complexity of the web app.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Future Works}\label{sec:fworks}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+While this web application is a working system, it clearly lacks many features and lots of 'polish'. Due to time constraints I have not been able to add some features in, and future development could yield improvements. Several of the most important features are listed here:
+\begin{itemize}
+\item The aesthetics of the page could be improved by use of CSS with appropriate re-design of the underlying HTML.
+\item An interface redesign could also provide cleaner results, using bigger, modern buttons in place of the standard HTML form buttons.
+\item The current system for updating and adding patients provides no systematic validation for what blood diseases and tests are permitted; an improved system would be to maintain a whitelist for each set and check inputs against them.
+\item Calendar functionality would be useful, with regards to scheduling people for donations. Such a system might permit, for example, bringing up a list of donors scheduled for a day, so a worker could call and remind them of an appointment.
+\end{itemize}
 
+It is also not difficult to see how a system like this could be monetized. In a world where HIPAA places draconian requirements on the currency of software used to process and store patient data, software-as-a-service (SAAS) is becoming more popular, as companies seek to reduce their number of technology headaches. As this is built on a web platform, it is on a clear track to SAAS.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}\label{sec:conc}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-<UNFINISHED>
+In conclusion, it is easy to see why a blood bank would need such a database. The test database was seeded with 1000 records, and response time was nearly-instant on a consumer-grade laptop. Compare that to a paper storage system, where information fetch times become the biggest bottleneck to effective operation, and not logistics. Regarding the technical implementation, this project was a lesson in how quickly a piece of software can grow in complexity; from simple create-read-update-delete the project grew to specific reads, data-type validation, constrained views, and an interesting exercise in user experience: do you force two clicks to do a content-modifying action, or not? Do you present all the listings at once, or have a 'more' button? Regardless, a system such as the one presented here is not technically demanding, and in fact very few good 'how-to's exist for this sort of Racket project; this was mostly free-handed. However, a lack of technical complexity is not to discount interface complexity or use-case complexity. This project illuminated many of the issues associated with end-user software, like sandboxing and security, too.
 
-
-%% Winery~\cite{Winery} is graphical modeling tool.
-
-%% \begin{figure}
-%% Simple Figure
-%% \caption{Simple Figure}
-%% \label{fig:simple}
-%% \end{figure}
-
-%% \begin{table}
-%% \caption{Simple Table}
-
-%% \label{tab:simple}
-%% Simple Table
-%% \end{table}
-
-%% cref Demonstration: Cref at beginning of sentence, cref in all other cases.
-
-%% \Cref{fig:simple} shows a simple fact, although \cref{fig:simple} could also show something else.
-
-%% \Cref{tab:simple} shows a simple fact, although \cref{tab:simple} could also show something else.
-
-%% \Cref{sec:intro} shows a simple fact, although \cref{sec:intro} could also show something else.
-
-%% Brackets work as designed:
-%% <test>
-
-%% The symbol for powerset is now correct: $\powerset$ and not a Weierstrass p ($\wp$).
-
-%% \begin{inparaenum}
-%% \item All these items...
-%% \item ...appear in one line
-%% \item This is enabled by the paralist package.
-%% \end{inparaenum}
-
-%% ``something in quotes'' using plain tex or use \enquote{the enquote command}.
-
-%In the bibliography, use \texttt{\textbackslash textsuperscript} for ``st'', ``nd'', ...:
-%E.g., \enquote{The 2\textsuperscript{nd} conference on examples}.
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BIBLIOGRAPHY
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bibliographystyle{splncs03}
 \bibliography{finalpaper}
-
-%All links were last followed on October 5, 2014.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}

@@ -1,6 +1,7 @@
                       #lang racket/base
 (require racket/list
          db
+         db/util/postgresql
          racket/trace)
 
 
@@ -94,14 +95,14 @@
                                      "SELECT firstname, lastname FROM donor WHERE id=($1);")
                             (list (string->number patient-id)))))
 
-;; Expected order of update-values: fname, lname, bloodtype, address
+;; Expected order of update-values: fname, lname, bloodtype, address, tests, diseases
 (define (update-donor-backend arg-db arg-patient-id update-values)
   ;; convert "null" to <sql-null>
-  (define nullvals (map (lambda (value) (if (string=? "null" value) sql-null value)) update-values))
+  (define nullvals (map (lambda (value) (if (and (not (pg-array? value)) (string=? "null" value)) sql-null value)) update-values))
   (query-exec
    arg-db
    (bind-prepared-statement (prepare arg-db
-                                     "UPDATE donor SET firstname = $1, lastname = $2, bloodtype = $3, address = $4 where id=$5;")
+                                     "UPDATE donor SET firstname = $1, lastname = $2, bloodtype = $3, address = $4, testsdone = $5, knowndiseases = $6 where id=$7;")
                             (flatten (list nullvals arg-patient-id)))))
 
 (define (delete-donor-backend arg-db arg-patient-id)
@@ -111,16 +112,34 @@
                                      "DELETE FROM donor WHERE id=$1;")
                             (list (string->number arg-patient-id)))))
 
+;; Order for donor-values is: last name, first name, blood type, address, tests done, known diseases, date of last donation, phone number
+(define (new-donor-backend arg-db donor-values)
+  (define nullvals (map (lambda (value) (if (or (and (pg-array? value)
+                                                     (= 0 (pg-array-dimensions value)))
+                                                (and (not (pg-array? value))
+                                                     (string=? "null" value))) sql-null value)) donor-values))
+  (query-exec
+   arg-db
+   (bind-prepared-statement (prepare arg-db
+                                     "INSERT INTO donor VALUES(default, $1, $2, $3, $4, $5, $6, $7, $8);")
+                            nullvals)))
+
 (trace search-patient)
 (trace donor-search)
+(trace update-donor-backend)
+(trace new-donor-backend)
 (provide get-patients
          get-extended-patient
          get-patient-bloodtype
          get-patient-fullname
          update-donor-backend
          delete-donor-backend
+         new-donor-backend
          search-patient
          donor-search
          initialize-patientlist!
-         sql-null?)
+         sql-null?
+         pg-array->list
+         pg-array?
+         list->pg-array)
 

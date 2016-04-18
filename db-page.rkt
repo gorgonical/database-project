@@ -2,6 +2,7 @@
 
 (require web-server/formlets
          web-server/servlet
+         racket/trace
          "db-backend.rkt")
 
 (provide/contract (start (request? . -> . response?)))
@@ -15,6 +16,10 @@
   (define db (initialize-patientlist! "bloodbank" "nmg"))
   (render-patients-page db (get-patients db) request))
 
+;; Takes any sublists contained in the parameter and converts them to pg-arrays.
+(define (donor-details-sanitizer detailslist)
+  (map (lambda (item) (if (list? item) (list->pg-array item) item)) detailslist))
+
 ;; Maybe superfluous function to search user list.
 (define (user-search arg-db arg-patient-attributes)
   (search-patient arg-db arg-patient-attributes))
@@ -27,32 +32,56 @@
                                      )
                                 (list fname lname bloodtype)))
 
+
+
 ;; Formlet for entering a new patient.
 (define new-donor-formlet (formlet
-                           "hello!";;formlet body todo
-                           null;;formlet return values todo
-                           ))
+       (div ((class "newpatient"))
+            "First Name:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . fname}"*"(br)        
+            "Last Name:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . lname}"*"(br)
+            "Bloodtype:" ,{(select-input '("O+" "O-" "A+" "A-" "B+" "B-" "AB+" "AB-")) . => . bloodtype}"*"(br)
+            "Tests done:" ,{(to-string (default (string->bytes/utf-8 "null") (textarea-input))) . => . tests}(br)
+            "Known diseases:" ,{(to-string (default (string->bytes/utf-8 "null") (textarea-input))) . => . diseases}(br)
+            "Address:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . inaddress}(br)
+            "* indicates a required field")
+       (list lname fname bloodtype inaddress (newlinestr->list diseases) (newlinestr->list tests) "null" "null")))
+
+;; Function to take in a string with items separated by newlines, return
+;; list of string items
+(define (newlinestr->list instring)
+  (string-split instring "\r\n"))
+;; Reverse of the above function, joins with comma space.
+(define (list->newlinestr inlist)
+  (foldl (lambda (item accum) (string-append accum item ", ")) "" inlist))
 
 ;; Formlet for editing an existing patient.
 ;(define edit-donor-formlet
 (define (edit-donor-formlet [arg-patientinfo null])
+  (define testsdone (string))
+  (define knowndiseases (string))
   (if (null? arg-patientinfo)
       (formlet
        (div ((class "patientupdate"))
             "First Name:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . fname}(br)        
             "Last Name:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . lname}(br)
             "Bloodtype:" ,{(select-input '("O+" "O-" "A+" "A-" "B+" "B-" "AB+" "AB-")) . => . bloodtype}(br)
-            "Address:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . address}
-            )                           
-       (list fname lname bloodtype address))
-      (formlet
-       (div ((class "patientupdate"))
-            "First Name:" ,{(to-string (default (string->bytes/utf-8 (list-ref arg-patientinfo 1)) (text-input #:value (string->bytes/utf-8 (list-ref arg-patientinfo 1))))) . => . fname}(br)        
-            "Last Name:" ,{(to-string (default (string->bytes/utf-8 (list-ref arg-patientinfo 2)) (text-input #:value (string->bytes/utf-8 (list-ref arg-patientinfo 2))))) . => . lname}(br)
-            "Bloodtype:" ,{(select-input '("O+" "O-" "A+" "A-" "B+" "B-" "AB+" "AB-") #:selected? (lambda (value) (string=? (list-ref arg-patientinfo 3) value))) . => . bloodtype}(br)
-            "Address:" ,{(to-string (default (string->bytes/utf-8 (list-ref arg-patientinfo 4)) (text-input #:value (string->bytes/utf-8 (list-ref arg-patientinfo 4))))) . => . address}
-                                                                                                        )
-       (list fname lname bloodtype address))
+            "Address:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . inaddress}(br)
+            "Tests done:" ,{(to-string (default (string->bytes/utf-8 "null") (textarea-input))) . => . tests}(br)
+            "Known diseases:" ,{(to-string (default (string->bytes/utf-8 "null") (textarea-input))) . => . diseases})
+       (list lname fname bloodtype inaddress (newlinestr->list diseases) (newlinestr->list tests)))
+      (begin
+        (set! testsdone (if (and (not (pg-array? (list-ref arg-patientinfo 6))) (string=? "null" (list-ref arg-patientinfo 6))) "null" (foldl (lambda (item accum) (string-append accum item "\r\n")) "" (pg-array->list (list-ref arg-patientinfo 6)))))
+        (set! knowndiseases (if (and (not (pg-array? (list-ref arg-patientinfo 5))) (string=? "null" (list-ref arg-patientinfo 5))) "null" (foldl (lambda (item accum) (string-append accum item "\r\n")) "" (pg-array->list (list-ref arg-patientinfo 5)))))
+        (formlet
+         (div ((class "patientupdate"))
+              "First Name:" ,{(to-string (default (string->bytes/utf-8 (list-ref arg-patientinfo 1)) (text-input #:value (string->bytes/utf-8 (list-ref arg-patientinfo 1))))) . => . fname}(br)        
+              "Last Name:" ,{(to-string (default (string->bytes/utf-8 (list-ref arg-patientinfo 2)) (text-input #:value (string->bytes/utf-8 (list-ref arg-patientinfo 2))))) . => . lname}(br)
+              "Bloodtype:" ,{(select-input '("O+" "O-" "A+" "A-" "B+" "B-" "AB+" "AB-") #:selected? (lambda (value) (string=? (list-ref arg-patientinfo 3) value))) . => . bloodtype}(br)
+              "Address:" ,{(to-string (default (string->bytes/utf-8 (list-ref arg-patientinfo 4)) (text-input #:value (string->bytes/utf-8 (list-ref arg-patientinfo 4))))) . => . address}(br)
+              "Tests done:" ,{(to-string (default (string->bytes/utf-8 testsdone) (textarea-input #:value (string->bytes/utf-8 testsdone)))) . => . tests}(br)
+              "Known diseases:" ,{(to-string (default (string->bytes/utf-8 knowndiseases) (textarea-input #:value (string->bytes/utf-8 knowndiseases)))) . => . diseases}
+              )
+         (list lname fname bloodtype address (newlinestr->list diseases) (newlinestr->list tests))))
       ))
 
 ;;
@@ -144,9 +173,14 @@
                 (th "Phone Number"))
             ,@(map (lambda (patient)
                      `(tr ,@(for/list ([i (in-range 1 9)])
-                             `(td ,(if (sql-null? (vector-ref patient i))
-                                       "null"
-                                       (vector-ref patient i))))))
+                             `(td ,(begin
+                                      (if (sql-null? (vector-ref patient i))
+                                          "null"
+                                          (if (pg-array? (vector-ref patient i))
+                                              (list->newlinestr (pg-array->list (vector-ref patient i)))
+                                              (vector-ref patient i)
+                                              )))
+                                  ))))
                    arg-patients)))
   (define (response-generator embed/url)
     (response/xexpr
@@ -172,9 +206,14 @@
                 (th "Phone Number"))
             ,@(map (lambda (patient)
                      `(tr ,@(for/list ([i (in-range 1 9)])
-                             `(td ,(if (sql-null? (vector-ref patient i))
-                                       "null"
-                                       (vector-ref patient i))))))
+                              `(td ,(begin
+                                      (if (sql-null? (vector-ref patient i))
+                                          "null"
+                                          (if (pg-array? (vector-ref patient i))
+                                              (list->newlinestr (pg-array->list (vector-ref patient i)))
+                                              (vector-ref patient i)
+                                              )))
+                                ))))
                    arg-patients)))
   (define (response-generator embed/url)
     (define patientinfo (get-extended-patient arg-db (string->number arg-recipient-patient-id)))
@@ -195,26 +234,29 @@
 (define (insert-donor arg-db request)
   (define (back-handler request)
     (render-patients-page arg-db (get-patients arg-db) request))
+  (define (submit-new-donor-handler request)
+    (new-donor-backend arg-db (donor-details-sanitizer (formlet-process new-donor-formlet request)))
+    (render-patients-page arg-db (get-patients arg-db) (redirect/get)))
   (define (response-generator embed/url)    
     (response/xexpr
      `(html (head (title "Adding New Donor"))
             (body
-             (h1 "Inserting New Donor")
-             (form ([action
-                     ;;action consequence
-                     ""])
+             (h1 "Adding New Donor to Database")
+             (form ([action ,(embed/url submit-new-donor-handler)])
                    ,@(formlet-display new-donor-formlet)
                    (input ([type "submit"])))
              (a ((href ,(embed/url back-handler))) "Abort and go back")))
      ))
   (send/suspend/dispatch response-generator))
 
+
+
 ;; Separate page to host the update donor formlet. Populates the input boxes with the details already there.
 (define (update-donor arg-db arg-patient-id request)
   (define (back-handler request)
     (render-patients-page arg-db (get-patients arg-db) request))
   (define (submit-changes-handler request)
-    (update-donor-backend arg-db arg-patient-id (formlet-process (edit-donor-formlet null) request))
+    (update-donor-backend arg-db arg-patient-id (donor-details-sanitizer (formlet-process (edit-donor-formlet null) request)))
     (render-patients-page arg-db (get-patients arg-db) (redirect/get)))
   (define (response-generator embed/url)
     (define patientinfo (map (lambda (item) (if (sql-null? item) "null" item)) (vector->list (get-extended-patient arg-db arg-patient-id))))
@@ -228,6 +270,7 @@
        )))
   (send/suspend/dispatch response-generator))
 
+;; Separate page to host the delete donor confirmation page.
 (define (delete-donor arg-db arg-patient-id request)
   (define (yes-handler request)
     (delete-donor-backend arg-db (number->string arg-patient-id))
@@ -243,15 +286,17 @@
             (a ((href ,(embed/url yes-handler))) "Yes, delete donor")
             (br)
             (a ((href ,(embed/url no-handler))) "No, nevermind"))
-     )
-    )
+     ))
   (send/suspend/dispatch response-generator))
 
 ;;
 ;; Making this file runnable as a servlet stuff
 ;;
-
+(trace update-donor)
+(trace donor-details-sanitizer)
+(trace insert-donor)
 (require web-server/servlet-env)
+
 (serve/servlet start
                #:launch-browser? #f
                #:quit? #f

@@ -9,18 +9,18 @@ Patient Record/Donor Database
 | firstname        | varchar(255) not null |
 | bloodtype        | varchar(3) not null   |
 | address          | varchar(255)          |
-| testsdone        | text[][]              |
-| knowndiseases    | text[][]              |
+| testsdone        | text[]                |
+| knowndiseases    | text[]                |
 | lastdonationdate | date                  |
 | phone            | char(14)              |
 
 Actual query to build table:
-create table donor(id serial primary key, lastname varchar(255) not null, firstname varchar(255) not null, bloodtype varchar(3) not null, address varchar(255), testsdone text[][], knowndiseases text[][], lastdonationdate date, phone char(14));  
+create table donor(id serial primary key, lastname varchar(255) not null, firstname varchar(255) not null, bloodtype varchar(3) not null, address varchar(255), testsdone text[], knowndiseases text[], lastdonationdate date, phone char(14));  
 
 In order to append to an array, use "set array = array || '{newvalue}'"
 
 Good format for new patients:
-insert into donor values (default, 'firstname', 'lastname', 'bloodtype', 'address', default, default, 'YYYY-MM-DD', '(XXX) XXX-XXXX');
+insert into donor values (default, 'lastname', 'firstname', 'bloodtype', 'address', default, default, 'YYYY-MM-DD', '(XXX) XXX-XXXX');
 the defaults are, in order: id, testsdone, knowndiseases
 
 *Generating the random data*
@@ -34,7 +34,7 @@ to get a random name from the file:
 sort -R file.txt | head -n 1
 
 *Inserting the data*
-This data omits diseases tested for, known diseases, addresses, and last donation date
+This data omits known diseases, addresses, and last donation date
 
-With the values (in order) for lastname, firstname, bloodtype, and phonenumber in testdata.txt separated by commas and the table donor in testdb:
-cat testdata.txt | while read line; do firstname=`echo $line | cut -d, -f1`; lastname=`echo $line | cut -d, -f2`; bloodtype=`echo $line | cut -d, -f3`; phonenumber=`echo $line | cut -d, -f4`; echo "insert into donor values (default, $lastname, $firstname, '$bloodtype', default, default, default, default, '$phonenumber');"; done | psql testdb
+With the values (in order) for lastname, firstname, bloodtype, tests done, diseases, and phonenumber in testdatafin.txt separated by commas and the table donor in testdb:
+cat testdatafin.txt | while read line; do firstname=`echo $line | cut -d_ -f2`; lastname=`echo $line | cut -d_ -f1`; bloodtype=`echo $line | cut -d_ -f3`; phonenumber=`echo $line | cut -d_ -f5`; diseases=`echo $line | cut -d_ -f4`; echo "insert into donor values (default, $lastname, $firstname, '$bloodtype', default, $diseases, default, default, '$phonenumber');"; done | psql bloodbank
