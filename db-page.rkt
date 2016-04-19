@@ -36,8 +36,8 @@
 
 ;; Formlet for entering a new patient.
 (define new-donor-formlet (formlet
-       (div ((class "newpatient"))
-            "First Name:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . fname}"*"(br)        
+       (div ((class "newpatient")) 
+           "First Name:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . fname}"*"(br)        
             "Last Name:" ,{(to-string (default (string->bytes/utf-8 "null") (text-input))) . => . lname}"*"(br)
             "Bloodtype:" ,{(select-input '("O+" "O-" "A+" "A-" "B+" "B-" "AB+" "AB-")) . => . bloodtype}"*"(br)
             "Tests done:" ,{(to-string (default (string->bytes/utf-8 "null") (textarea-input))) . => . tests}(br)
@@ -105,6 +105,7 @@
 (define (display-patients arg-db arg-patients embed/url)
   (define (patient-list-handler request)
     (cond
+      [(not (exists-binding? 'patientbutton (request-bindings request))) (render-patients-page arg-db arg-patients request)]
       [(exists-binding? 'details (request-bindings request)) (show-user-details-handler request)]
       [(exists-binding? 'donors (request-bindings request)) (donor-search-handler request)]
       [(exists-binding? 'update (request-bindings request)) (update-donor-handler request)]
@@ -129,10 +130,13 @@
   (define (get-patient-id bindings)
     (extract-binding/single 'patientbutton bindings))
   (define (show-user-details-handler request)
-    (show-user-details arg-db
-                       (list (get-extended-patient arg-db
-                                                   (string->number (get-patient-id (request-bindings request)))))
-                       request))
+    (if (exists-binding? 'patientbutton (request-bindings request))
+        (show-user-details arg-db
+                           (list (get-extended-patient arg-db
+                                                       (string->number (get-patient-id (request-bindings request)))))
+                           request)
+        null
+        ))
   (define (render-patient patient)
     `(tr (td (input ((type "radio") (name "patientbutton") (value ,(number->string (vector-ref patient 0))))))             
          (td ,(vector-ref patient 1))
@@ -176,9 +180,11 @@
                              `(td ,(begin
                                       (if (sql-null? (vector-ref patient i))
                                           "null"
-                                          (if (pg-array? (vector-ref patient i))
+                                          (if (and (pg-array? (vector-ref patient i)) (not (= 0 (pg-array-dimensions (vector-ref patient i)))))
                                               (list->newlinestr (pg-array->list (vector-ref patient i)))
-                                              (vector-ref patient i)
+                                              (if (pg-array? (vector-ref patient i))
+                                                  "null"
+                                                  (vector-ref patient i))
                                               )))
                                   ))))
                    arg-patients)))
@@ -209,9 +215,11 @@
                               `(td ,(begin
                                       (if (sql-null? (vector-ref patient i))
                                           "null"
-                                          (if (pg-array? (vector-ref patient i))
+                                          (if (and (pg-array? (vector-ref patient i)) (not (= 0 (pg-array-dimensions (vector-ref patient i)))))
                                               (list->newlinestr (pg-array->list (vector-ref patient i)))
-                                              (vector-ref patient i)
+                                              (if (pg-array? (vector-ref patient i))
+                                                  "null"
+                                                  (vector-ref patient i))                                              
                                               )))
                                 ))))
                    arg-patients)))

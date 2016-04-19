@@ -141,5 +141,6 @@
          sql-null?
          pg-array->list
          pg-array?
+         pg-array-dimensions
          list->pg-array)
 
